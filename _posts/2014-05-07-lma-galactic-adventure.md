@@ -122,4 +122,199 @@ Another state that has been generated, this state is meant to be used as your pr
 
 ## Main Menu
 
+Since our game starts at the MenuState we should really consider adding something to it besides the blank screen it currently is! Since this game is relatively simple all we will be adding is background, title, and play button. Now the cool thing about HaxeFlixel is it comes with a default skin for things like buttons so prototyping a UI is as simple as can be. To start let's open our `MenuState.hx` source file.
+
+
+/***** TALK ABOUT ADDONS */
+
+{% highlight haxe %}
+package;
+
+import flixel.FlxG;
+import flixel.FlxState;
+import flixel.text.FlxText;
+import flixel.ui.FlxButton;
+import flixel.util.FlxColor;
+import flixel.addons.display.FlxBackdrop;
+
+class MenuState extends FlxState
+{
+	override public function create():Void
+	{
+		super.create();
+	}
+
+	override public function destroy():Void
+	{
+		super.destroy();
+	}
+}
+{% endhighlight %}
+
+This is our barebones MenuState, pretty boring isn't it? So let's add some flair! At the top you'll see the imported classes we'll using from HaxeFlixel. By importing them we are permitted to use them throughout our class. You'll also notice the create and destroy methods. These are used by HaxeFlixel to setup and tear down your State. We will be using create to initialize our variables and destroy to nullify them. So first things first we should add our background!
+
+<h4>Background</h4>
+
+{% highlight haxe %}
+private var background:FlxBackdrop;
+
+override public function create():Void
+{
+	super.create();
+
+	background = new FlxBackdrop("assets/images/background.png");
+	background.setVelocity(100, 100);
+
+	add(background);
+}
+
+override public function destroy():Void
+{
+	super.destroy();
+
+	background = null;
+}
+{% endhighlight %}
+
+As you can see we created a parallax background using `FlxBackdrop`. This class allows us to use an image of any size, fill the screen with it, and then give it a velocity that will cause the image to move and loop on the screen. Thus we have our parallax background moving at 100 pixels on the X and Y axis, in a down-right direction. Right after initializing and giving our background it's parallax abilities we add it to the State. By using the `add` function we actually make our background visible in the game, and last but not least in our `destroy` function we set our background to null. Now that we have the background done, it is time to move onto the title! Lucky for HaxeFlixel provides an easy way to do this as well.
+
+<h4>Title</h4>
+
+{% highlight haxe %}
+private var background:FlxBackdrop;
+private var title:FlxText;
+
+override public function create():Void
+{
+	super.create();
+
+	background = new FlxBackdrop("assets/images/background.png");
+	background.setVelocity(100, 100);
+
+	title = new FlxText(0, 20, FlxG.width, "DRIFTER");
+	title.setFormat(null, 48, FlxColor.WHITE, "center");
+	title.setBorderStyle(FlxText.BORDER_OUTLINE, FlxColor.BLACK, 2);
+
+	add(background);
+	add(title);
+}
+
+override public function destroy():Void
+{
+	super.destroy();
+
+	background = null;
+	title      = null;
+}
+{% endhighlight %}
+
+Hold on just a minute, that doesn't look so easy! Ah, but it is. Just like the `background` we created a `title` variable using the `FlxText` class. `FlxText` allows us to generate a graphically represented word or phrase, in this case the title of our game.
+
+{% highlight haxe %}
+title = new FlxText(0, 20, FlxG.width, "DRIFTER");
+{% endhighlight %}
+
+To create the `title` we apply an (X, Y) coordinate pair of (0, 20). In HaxeFlixel the coordinate system begins in the top left at (0, 0), and all objects like our title on the game's coordinate plane are positioned based on their top left pixel. This means that the top left pixel of our title is at (0, 20) and the rest of it automatically positions itself from that point. 
+
+{% highlight haxe %}
+title.setFormat(null, 48, FlxColor.WHITE, "center");
+{% endhighlight %}
+
+Besides positioning we also give the title a width the same size of the window. This width applies to the imaginary box surrounding the title, sort of like a text field. We do this so that we can center the title based on the window's size. This centering is done via the `setFormat` function. The first parameter we give the function is `null` for the font. By passing `null` instead of a proper value HaxeFlixel uses the default font `nokiafc22`. Next we give a font size of 48, a text color of `WHITE` supplied by the `FlxColor` class, and we align the text to the `"center"` of it's imaginary box. These values are just what I decided looked good.
+
+{% highlight haxe %}
+title.setBorderStyle(FlxText.BORDER_OUTLINE, FlxColor.BLACK, 2);
+{% endhighlight %}
+
+To add the border to our title we used `FlxText`'s `setBorderStyle` function. `FlxText` offers a few options for borders, but I ultimately decided on using `BORDER_OUTLINE` colored `BLACK` with a width of 2. Once again these are just the choices I made to stylize the title. They can be easily configured to your liking with a variety of different options.
+
+<h4>Play Button</h4>
+
+{% highlight haxe %}
+private var background:FlxBackdrop;
+private var title:FlxText;
+private var btnPlay:FlxButton;
+
+private function onClickPlay()
+{
+	FlxG.switchState(new PlayState());
+}
+
+override public function create():Void
+{
+	super.create();
+
+	background = new FlxBackdrop("assets/images/background.png");
+	background.setVelocity(100, 100);
+
+	title = new FlxText(0, 20, FlxG.width, "DRIFTER");
+	title.setFormat(null, 48, FlxColor.WHITE, "center");
+	title.setBorderStyle(FlxText.BORDER_OUTLINE, FlxColor.BLACK, 2);
+
+	btnPlay = new FlxButton(FlxG.width / 2, FlxG.height / 2, "PLAY!", onClickPlay);
+	btnPlay.x -= btnPlay.width / 2;
+
+	add(background);
+	add(title);
+	add(btnPlay);
+}
+
+override public function destroy():Void
+{
+	super.destroy();
+
+	background = null;
+	title      = null;
+	btnPlay    = null;
+}
+{% endhighlight %}
+
+We're coming to an end with our Main menu, and only have a few things left to add. However the most important of these things is giving the player a way to actually start the game! Thus we have the play button.
+
+{% highlight haxe %}
+btnPlay = new FlxButton(FlxG.width / 2, FlxG.height / 2, "PLAY!", onClickPlay);
+{% endhighlight %}
+
+Once again we're using another magical Flx class. The `FlxButton` class allows us to create an interactive game element that represents a common button. In this case we set the position of the button's top left pixel to be in the exact middle of our window. The math is quite simple. Next we specify the text we wish to display on our button, in this case `"PLAY!"`. The text is what determines the width and height of the button itself. The last parameter is the trickiest. This is the name of the function we want to have executed when the button is pressed.
+
+{% highlight haxe %}
+private function onClickPlay()
+{
+	FlxG.switchState(new PlayState());
+}
+{% endhighlight %}
+
+When executed, this function will tell HaxeFlixel that we are done with this state and want to display another. So when the play button is clicked `PlayState` becomes the center of attention.
+
+<h4>Finishing Up</h4>
+
+Now we have a fully functional main menu! Complete with a fancy parallax background, generated title, and play button. What else could we possibly need? *Music*. No menu, or game for that matter is complete without music!
+
+{% highlight haxe %}
+override public function create():Void
+{
+	super.create();
+
+	background = new FlxBackdrop("assets/images/background.png");
+	background.setVelocity(100, 100);
+
+	title = new FlxText(0, 20, FlxG.width, "DRIFTER");
+	title.setFormat(null, 48, FlxColor.WHITE, "center");
+	title.setBorderStyle(FlxText.BORDER_OUTLINE, FlxColor.BLACK, 2);
+
+	btnPlay = new FlxButton(FlxG.width / 2, FlxG.height / 2, "PLAY!", onClickPlay);
+	btnPlay.x -= btnPlay.width / 2;
+
+	add(background);
+	add(title);
+	add(btnPlay);
+
+	FlxG.sound.playMusic("assets/music/background.wav", 0.35);
+}
+{% endhighlight %}
+
+The `FlxG` class gives us the power to play music on a loop on command! However I found the music to be too loud so I also specified `0.35` to set the volume level of the music itself to about 35% of it's normal. The best apart about music in HaxeFlixel is that it never stops playing until you tell it to! So even though we started playing the music on this state, any other state we switch to will still be playing this music without a stutter!
+
+## The Player
+
 *To be continued...*
