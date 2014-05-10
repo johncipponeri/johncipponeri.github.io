@@ -1,9 +1,7 @@
 ---
 layout: home
-description: "A responsive Jekyll theme with editorial tendencies by designer Michael Rose."
-tags: [Jekyll, theme, responsive, blog, template]
+description: "Game development blog designed to teach and reconcile the experiences and adventures to be had exploring game mechanics both new and old."
+tags: [game, development, code, blog, programming, github]
 image:
-  feature: texture-feature-01.jpg
-  credit: Texture Lovers
-  creditlink: http://texturelovers.com
+  feature: main-header.png
 ---
