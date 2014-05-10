@@ -28,6 +28,13 @@ This guide is directed at those of you that are still learning to code, use Haxe
 
 These are the primary learning targets for this guide and are what make up a good portion of this project. We will learn, explore, and put to use these mechanics and various other things that HaxeFlixel has to offer. By using what we have available we will be remaking Drifter from scratch!
 
+## Play the Game
+
+If you'd like to see what we'll be recreating you can click the button below to play the game. We will be creating an exact replica step-by-step taking an in-depth look at the development process I took to create it. You may also view the public source code. Our goal is to re-write the entire game from nothing mimicking the original source.
+
+<div markdown="0"><a href="http://johncipponeri.github.io/drifter/index.swf" class="btn btn-info">Play the Game</a> 
+<a href="http://github.com/johncipponeri/drifter" class="btn btn-info">View the Source</a></div>
+
 ## First Steps
 
 Now when developing a game you have a few preliminary steps to take. The first of which is to come up with a game! However lucky for you I've already done that part. We will be recreating Drifter, a top down space shooter. Now when making a game that's not really much to go off of.
