@@ -317,4 +317,165 @@ The `FlxG` class gives us the power to play music on a loop on command! However 
 
 ## The Player
 
+Now it's time we finally give our player a face of their very own! Or in this case a ship. We'll be creating the class that will dictate the properties and actions of our player in the game world.
+
+{% highlight haxe %}
+package;
+
+import flixel.FlxG;
+import flixel.FlxSprite;
+import flixel.addons.weapon.FlxWeapon;
+
+class Player extends FlxSprite
+{
+	public function new()
+	{
+
+	}
+
+	override public function update()
+	{
+
+	}
+}
+{% endhighlight %}
+
+Once again this is our barebones player class. The player is a `FlxSprite` which allows us to give it a position on the screen, a graphic, health, and whatever else we decide to add! The `FlxSprite` class is very versatile. We're going to be using two new functions, `new` and `update`. As you can recall we used the `create` function when doing the `MenuState`. HaxeFlixel uses these functions in the background, we just feed it the instructions we need. So for `FlxState` classes HaxeFlixel uses the `create` function to initialize our variables and create a new state. `FlxSprite` on the other hand like most other HaxeFlixel classes use the `new` function to do the same thing. Since we are extendings a `FlxSprite` we must also apply the properties a `FlxSprite` requires to be used.
+
+{% highlight haxe %}
+public function new()
+{
+	super(FlxG.width / 2 - 50, FlxG.height - 100, "assets/images/player_base.png");
+}
+{% endhighlight %}
+
+By using the function `super` we are technically executing the `FlxSprite`'s own `new` function. By doing so we give our player a position, as well as a graphic. In this case we are centering the player on the bottom of the screen. `FlxG.width / 2 - 50` gives us the middle X coordinate of the screen and subtracts `50`, or half the width of the graphic we're using to center the player on the X-axis. For the Y we are using `FlxG.height - 100` to get the very bottom of the screen and shift it up by the height of our graphic. This is just simple math used to find the position we want and offset it with our graphics dimensions. We do it this way because if you recall HaxeFlixel's coordinate plane starts at (0, 0) in the top-left corner of the screen. Also many objects we display in the game are positioned based on their top left pixel. If we shift that top left pixel from the center we are actually positioning the entire graphic. Now let's give the player the ability to move their ship left and right.
+
+{% highlight haxe %}
+override public function update()
+{
+	super.update();
+
+	velocity.x = 0;
+
+	if (FlxG.keys.anyPressed(["A", "LEFT"]))
+		velocity.x -= 200;
+	else if (FlxG.keys.anyPressed(["D", "RIGHT"]))
+		velocity.x += 200;
+}
+{% endhighlight %}
+
+Our player being a `FlxSprite` has a velocity. HaxeFlixel uses this velocity's X and Y value to constantly move the sprite.
+
+{% highlight haxe %}
+velocity.x = 0;
+{% endhighlight %}
+
+Since our `update` function is executed 60 times per second we reset our velocity on the x-axis to 0 so that when the player is no longer holding the button he will stop, or if he is still holding the button the velocity will not exceed the range of -200 to 200 since we are constantly resetting it back to 0 after changing it. 200 is just the speed I found that looked good after testing multiple other values.
+
+{% highlight haxe %}
+if (FlxG.keys.anyPressed(["A", "LEFT"]))
+	velocity.x -= 200;
+else if (FlxG.keys.anyPressed(["D", "RIGHT"]))
+	velocity.x += 200;
+{% endhighlight %}
+
+We use `FlxG.keys.anyPressed` to poll whether or not either of the keys specified are currently being pressed, and if they are we change the velocity accordingly. A negative velocity moves us to the left, and a positive to the right. But what about a weapon?
+
+{% highlight haxe %}
+public var gun:FlxWeapon;
+
+public function new()
+{
+	super(FlxG.width / 2 - 50, FlxG.height - 100, "assets/images/player_base.png");
+
+	gun = new FlxWeapon("gun", this);
+	gun.makeImageBullet(50, "assets/images/laser_green.png");
+	gun.setFireRate(200);
+	gun.setBulletSpeed(200);
+	gun.setBulletOffset(width / 2 - 4, 0);
+}
+{% endhighlight %}
+
+Here we create a `FlxWeapon` called gun. The `FlxWeapon` class provides us with a simple way to give our player projectile weaponry. We have the `gun` defined as `public` so in the future you could potentially change the players weapon via power ups or any other means.
+
+{% highlight haxe %}
+gun = new FlxWeapon("gun", this);
+{% endhighlight %}
+
+When we initialize the weapon we specify some of the things required by the `FlxWeapon`. We give the gun a name in case we need to reference it in the future, as well as a reference the player. `FlxWeapon` uses this reference to align the weapon's graphic and the position of which to shoot from based on the position of the player.
+
+{% highlight haxe %}
+gun.makeImageBullet(50, "assets/images/laser_green.png");
+{% endhighlight %}
+
+Since we have a fantastic laser asset we use the `makeImageBullet` function to provide the gun with a graphic to use for the projectiles it fires. We specify the number `50` because it's a rough estimate of how many bullets we will have on the screen at once, however this isn't even close it's always good to slightly overestimate.
+
+{% highlight haxe %}
+gun.setFireRate(200);
+gun.setBulletSpeed(200);
+{% endhighlight %}
+
+Now we use the `setFireRate` and `setBulletSpeed` functions to set the velocity of which the projectiles will fly across the screen in terms of pixels per second, as well as how much time in milliseconds we should wait before allowing the gun to fire again. With the speed being `200` milliseconds we are allowing the player to shoot 5 times per second.
+
+{% highlight haxe %}
+gun.setBulletOffset(width / 2 - 4, 0);
+{% endhighlight %}
+
+This last bit of code sets the bullets position of origin, or where it starts at when it's initially fired to be in the middle of the player. We calculate this by dividing the players width and subtracting half the width of the projectile graphic, so `width / 2 - 4` provides us with just this. By specifying `0` as the inital Y coordinate we are position the bullet at the top of the player's graphic.
+
+{% highlight haxe %}
+override public function update():Void
+{
+	super.update();
+
+	velocity.x = 0;
+
+	if (FlxG.keys.anyPressed(["A", "LEFT"]))
+		velocity.x -= 200;
+	else if (FlxG.keys.anyPressed(["D", "RIGHT"]))
+		velocity.x += 200;
+
+	if (FlxG.keys.anyJustPressed(["SPACE"]))
+	{
+		FlxG.sound.play("assets/sounds/shoot.wav");
+		gun.fireAtPosition(Std.int(x + width / 2) - 1, 0);
+	}
+}
+{% endhighlight %}
+
+Now we give the player a fancy weapon but what we forgot to do was show them how to use it! By polling the input again we can allow them to shoot with the space bar.
+
+{% highlight haxe %}
+if (FlxG.keys.anyJustPressed(["SPACE"]))
+{
+	FlxG.sound.play("assets/sounds/shoot.wav");
+	gun.fireAtPosition(Std.int(x + width / 2) - 1, 0);
+}
+{% endhighlight %}
+
+Complete with a nice sound effect we can now fire our weapon! By telling the `gun` to `fireAtPosition` we can specify that the gun shoot only fire straight up. To calculate this coordinates we take the players current X coordinate and add on half the players width to get the X coordinate at the center of the player and subtract 1 pixel to tweak the positioning a hair. We use `Std.int` to convert the `x + width / 2` statement to an integer which is required by the function. The reason it's not an integer to start with is that the X coordinate is not an integer but instead a decimal. To finish things off let's give our player a set number of lives they can lose before achieving a game over!
+
+{% highlight haxe %}
+public var lives:Int;
+public var gun:FlxWeapon;
+
+public function new()
+{
+	super(FlxG.width / 2 - 50, FlxG.height - 100, "assets/images/player_base.png");
+
+	lives = 3;
+
+	gun = new FlxWeapon("gun", this);
+	gun.makeImageBullet(50, "assets/images/laser_green.png");
+	gun.setFireRate(200);
+	gun.setBulletSpeed(200);
+	gun.setBulletOffset(width / 2 - 4, 0);
+}
+{% endhighlight %}
+
+It's as simple as defining the lives as an integer and giving the player a starting amount of lives. I decided the classic 3 lives approach would be appropriate in this arcade style game.
+
+## Boss
+
 *To be continued...*
