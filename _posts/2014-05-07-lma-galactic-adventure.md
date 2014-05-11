@@ -485,7 +485,7 @@ It's as simple as defining the lives as an integer and giving the player a start
 
 ## Boss
 
-{% highlight %}
+{% highlight haxe %}
 package;
 
 import flixel.FlxG;
@@ -510,7 +510,7 @@ class Boss extends FlxSprite
 
 Here we have our boss class in it's most basic form. The boss is essentially programmed as an automated player. It's not smart but it gets the job done for our simple arcade shooter. The only real differences between the boss and player is how their health, movement, and shooting are handled. Since our boss follows a simple bit of artificial intelligence, or A.I. we have to tell it what to do and in what cases to do these things in. But before we can do that we need to arm, initialize, and set up our boss to be battle ready.
 
-{% highlight %}
+{% highlight haxe %}
 public var gun:FlxWeapon;
 private var finalY:Int;
 
@@ -532,7 +532,7 @@ public function new(xPos:Int, yPos:Int, FinalY:Int)
 
 As you can see there are a few differences between the boss and the player. The immediate difference being they have a different positioning system. When the boss fight is initiated for aesthetics effects the boss is spawned higher on the screen that the player can see and it moves down to it's `finalY`. To make this happen we have to give the boss a position when it is spawned as well as specify what position to start it at, by not making these values in the boss class itself, we can actually spawn multiple bosses at multiple positions! The `gun` is the same as the player, the only difference being the graphic used and the name we give it. The name `bossGun` seemed appropriate.
 
-{% highlight %}
+{% highlight haxe %}
 override public function update():Void
 {
 	super.update();
@@ -549,7 +549,7 @@ override public function update():Void
 
 Here we implement that beginning movement. The boss moves from it's spawn location downward at a constant speed of 100 pixels per second until it reaches the specified `finalY` value. While the boss is moving to it's location we use a `return` statement to stop the AI we're yet to implement from running. Now that we have some basic AI, let's add some more!
 
-{% highlight %}
+{% highlight haxe %}
 override public function update():Void
 {
 	super.update();
@@ -571,7 +571,7 @@ override public function update():Void
 
 When the boss is at it's final destination it can start moving left and right! To make this happen we use two simple checks. If the boss's x-coordinate is less than or equal to 0 we hit the left wall and need to start going the opposite direction! But what if we hit the right wall? In this case our `else if` statement comes into play. The right wall is offset 100 pixels, which is the width of the boss. We do this so instead of the top right pixel hitting the right wall, it will hit the offset.
 
-{% highlight %}
+{% highlight haxe %}
 public var gun:FlxWeapon;
 public var multiplier:Int;
 
@@ -597,7 +597,7 @@ public function new(xPos:Int, yPos:Int, FinalY:Int)
 
 I also snuck a new variable in. `multiplier` will be used when we spawn multiple bosses. When a boss dies the idea is to increase `multiplier` by 1 so it speeds up the remaining bosses. For my last trick we will let the boss fire is lasers!
 
-{% highlight %}
+{% highlight haxe %}
 public var gun:FlxWeapon;
 public var multiplier:Int;
 
@@ -626,7 +626,7 @@ public function new(xPos:Int, yPos:Int, FinalY:Int)
 
 I decided to use a `FlxTimer` to make the boss's firing rate fit between a random range, as well as be affected by the multiplier. In this situation `FlxRandom` came to the rescue. By using `FlxRandom.floatRanged` I was able to get a random time between the range of `1` and `3 - (multiplier - 1)`. I derived this math from the logic that if we have 3 bosses, and the `multiplier` starts at one, that means when there is a single boss remaining the `multiplier` will be 3. So if we did `3 - (multiplier)` we'd be firing at a range of `1` to `0` seconds, which of course is illogical. So since I only plan to have a maximum of `3` bosses at once using a constant of `3` and `multiplier - 1` never going above 2, we can fire at a maximum rate of once per second. We use `shootTimer.start` so when the boss is done being initialized the timer starts counting down.
 
-{% highlight %}
+{% highlight haxe %}
 override public function update():Void
 {
 	super.update();
