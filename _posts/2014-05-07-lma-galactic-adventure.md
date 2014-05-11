@@ -485,4 +485,175 @@ It's as simple as defining the lives as an integer and giving the player a start
 
 ## Boss
 
-*To be continued...*
+{% highlight %}
+package;
+
+import flixel.FlxG;
+import flixel.FlxSprite;
+import flixel.util.FlxTimer;
+import flixel.util.FlxRandom;
+import flixel.addons.weapon.FlxWeapon;
+
+class Boss extends FlxSprite
+{
+	public function new(xPos:Int, yPos:Int, FinalY:Int)
+	{
+
+	}
+
+	override public function update()
+	{
+		super.update();
+	}
+}
+{% endhighlight %}
+
+Here we have our boss class in it's most basic form. The boss is essentially programmed as an automated player. It's not smart but it gets the job done for our simple arcade shooter. The only real differences between the boss and player is how their health, movement, and shooting are handled. Since our boss follows a simple bit of artificial intelligence, or A.I. we have to tell it what to do and in what cases to do these things in. But before we can do that we need to arm, initialize, and set up our boss to be battle ready.
+
+{% highlight %}
+public var gun:FlxWeapon;
+private var finalY:Int;
+
+public function new(xPos:Int, yPos:Int, FinalY:Int)
+{	
+	super(xPos, yPos, "assets/images/enemy_ship.png");
+
+	health = 5;
+
+	finalY = FinalY;
+
+	gun = new FlxWeapon("bossGun", this);
+	gun.makeImageBullet(50, "assets/images/laser_red.png");
+	gun.setFireRate(200);
+	gun.setBulletSpeed(200);
+	gun.setBulletOffset(width / 2 - 4, 0);
+}
+{% endhighlight %}
+
+As you can see there are a few differences between the boss and the player. The immediate difference being they have a different positioning system. When the boss fight is initiated for aesthetics effects the boss is spawned higher on the screen that the player can see and it moves down to it's `finalY`. To make this happen we have to give the boss a position when it is spawned as well as specify what position to start it at, by not making these values in the boss class itself, we can actually spawn multiple bosses at multiple positions! The `gun` is the same as the player, the only difference being the graphic used and the name we give it. The name `bossGun` seemed appropriate.
+
+{% highlight %}
+override public function update():Void
+{
+	super.update();
+
+	velocity.y = 0;
+
+	if (y < finalY) 
+	{
+		velocity.y = 100;
+		return;
+	}
+}
+{% endhighlight %}
+
+Here we implement that beginning movement. The boss moves from it's spawn location downward at a constant speed of 100 pixels per second until it reaches the specified `finalY` value. While the boss is moving to it's location we use a `return` statement to stop the AI we're yet to implement from running. Now that we have some basic AI, let's add some more!
+
+{% highlight %}
+override public function update():Void
+{
+	super.update();
+
+	velocity.y = 0;
+
+	if (y < finalY) 
+	{
+		velocity.y = 100;
+		return;
+	}
+
+	if (x <= 0) 
+		velocity.x += multiplier * 100;
+	else if (x >= FlxG.width - 100) 
+		velocity.x -= multiplier * 100;
+}
+{% endhighlight %}
+
+When the boss is at it's final destination it can start moving left and right! To make this happen we use two simple checks. If the boss's x-coordinate is less than or equal to 0 we hit the left wall and need to start going the opposite direction! But what if we hit the right wall? In this case our `else if` statement comes into play. The right wall is offset 100 pixels, which is the width of the boss. We do this so instead of the top right pixel hitting the right wall, it will hit the offset.
+
+{% highlight %}
+public var gun:FlxWeapon;
+public var multiplier:Int;
+
+private var finalY:Int;
+
+public function new(xPos:Int, yPos:Int, FinalY:Int)
+{	
+	super(xPos, yPos, "assets/images/enemy_ship.png");
+
+	health = 5;
+
+	finalY = FinalY;
+
+	multiplier = 1;
+
+	gun = new FlxWeapon("bossGun", this);
+	gun.makeImageBullet(50, "assets/images/laser_red.png");
+	gun.setFireRate(200);
+	gun.setBulletSpeed(200);
+	gun.setBulletOffset(width / 2 - 4, 0);
+}
+{% endhighlight %}
+
+I also snuck a new variable in. `multiplier` will be used when we spawn multiple bosses. When a boss dies the idea is to increase `multiplier` by 1 so it speeds up the remaining bosses. For my last trick we will let the boss fire is lasers!
+
+{% highlight %}
+public var gun:FlxWeapon;
+public var multiplier:Int;
+
+private var finalY:Int;
+private var shootTimer:FlxTimer;
+
+public function new(xPos:Int, yPos:Int, FinalY:Int)
+{	
+	super(xPos, yPos, "assets/images/enemy_ship.png");
+
+	health = 5;
+
+	finalY = FinalY;
+
+	multiplier = 1;
+
+	gun = new FlxWeapon("bossGun", this);
+	gun.makeImageBullet(50, "assets/images/laser_red.png");
+	gun.setFireRate(200);
+	gun.setBulletSpeed(200);
+	gun.setBulletOffset(width / 2 - 4, 0);
+
+	shootTimer.start(FlxRandom.floatRanged(1, 3 - (multiplier - 1)));
+}
+{% endhighlight %}
+
+I decided to use a `FlxTimer` to make the boss's firing rate fit between a random range, as well as be affected by the multiplier. In this situation `FlxRandom` came to the rescue. By using `FlxRandom.floatRanged` I was able to get a random time between the range of `1` and `3 - (multiplier - 1)`. I derived this math from the logic that if we have 3 bosses, and the `multiplier` starts at one, that means when there is a single boss remaining the `multiplier` will be 3. So if we did `3 - (multiplier)` we'd be firing at a range of `1` to `0` seconds, which of course is illogical. So since I only plan to have a maximum of `3` bosses at once using a constant of `3` and `multiplier - 1` never going above 2, we can fire at a maximum rate of once per second. We use `shootTimer.start` so when the boss is done being initialized the timer starts counting down.
+
+{% highlight %}
+override public function update():Void
+{
+	super.update();
+
+	velocity.y = 0;
+
+	if (y < finalY) 
+	{
+		velocity.y = 100;
+		return;
+	}
+
+	if (x <= 0) 
+		velocity.x += multiplier * 100;
+	else if (x >= FlxG.width - 100) 
+		velocity.x -= multiplier * 100;
+
+	if (shootTimer.finished)
+	{
+		gun.fireAtPosition(Std.int(x + width / 2) - 1, FlxG.height);
+		shootTimer.reset(FlxRandom.floatRanged(1, 3 - (multiplier - 1)));
+	}
+}
+{% endhighlight %}
+
+Looking back I should've replaced the timer's range with a variable but this guide is on how I created the game originally so I'll leave it as is. `FlxTimer` has a parameter which would call a function when it reaches 0, but I did not know this until after I made my game so instead I checked every frame if the `shootTimer` was `finished` which meant that it was done counting down, and if so we'd fire the gun downward almost exactly like we did the players just with a simpler y-coordinate, and reset the timer to count down again from a new range! So we've officially completed our boss, soon it'll make for an epic boss battle!
+
+## The Glue
+
+*To be continued ...*
