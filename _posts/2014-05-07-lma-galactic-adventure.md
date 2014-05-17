@@ -965,7 +965,78 @@ By using the `forEach` method of the `spawns` group we can execute a function, i
 
 <h4>Spawner</h4>
 
+{% highlight haxe %}
+private var score:Int;
+private var scoreText:FlxText;
+
+private var background:FlxBackdrop;
+
+private var player:Player;
+
+private var spawns:FlxTypedGroup<FlxSprite>;
+private var maxSpawnTime:Float;
+private var spawnTimer:FlxTimer;
+
+override public function create():Void
+{
+	super.create();
+
+	score = 0;
+	scoreText = new FlxText(10, 10, FlxG.width, "SCORE: 0", 12);
+	scoreText.setBorderStyle(FlxText.BORDER_SHADOW);
+
+	background = new FlxBackdrop("assets/images/background.png");
+	background.velocity.set(100, 100);
+
+	player = new Player();
+
+	spawns = new FlxTypedGroup<FlxSprite>();
+	maxSpawnTime = 3;
+	spawnTimer = new FlxTimer();
+
+	add(background);
+	add(scoreText);
+	add(player);
+	add(player.gun.group);
+	add(spawns);
+
+	lives = new Array<FlxSprite>();
+	for (life in 0...player.lives)
+	{
+		lives[life] = new FlxSprite(40 * life + 10, FlxG.height - 40, "assets/images/life.png");
+		add(lives[life]);
+	}
+
+	spawnTimer.start(FlxRandom.floatRanged(1, maxSpawnTime));
+}
+{% endhighlight %}
+
+By now we've created our `spawn` function, but we haven't implemented it! So I think we should do just that. But what are our spawning conditions? Well I'm glad you asked. We will be using `FlxTimer` to spawn our enemies one at a time at random intervals. But to keep our intervals in a controllable and manipulatble range we need to have a `maxSpawnTime`. This maximum value is used to determine the maximum number of seconds until a new spawn, with the minimum amount always be 1. The plan is to slowly decrease the `maxSpawnTime` over time until it reaches 1 and we're spawning a new enemy every second. The reason we're decrementing the maximum is to make the game progressively harder up until a certain point (1 second between spawns). We use `FlxRandom.floatRanged` to get a random interval between 1 and `maxSpawnTime`, such as 1, 1.2, 1.6, 2.7, 2.1, 2 etc. We use the `start` function to make the timer start counting down as soon as our `create` function is finished with everything else and the state actually starts.
+
+{% highlight haxe %}
+override public function update():Void
+{
+	super.update();
+
+	if (spawnTimer.finished)
+	{
+		if (maxSpawnTime > 1) maxSpawnTime -= 0.1;			
+		spawn();
+		spawnTimer.reset(FlxRandom.floatRanged(1, maxSpawnTime));
+	}
+
+	spawns.forEach(checkSpawnBounds);
+
+	score += 1;
+	scoreText.text = "SCORE: " + score;
+}
+{% endhighlight %}
+
+Each update of the state we poll whether or not `spawnTimer.finished` is true, which would indicate that the timer has finished counting down. If this is the case we decrement our `maxSpawnTime`, `spawn()` a new enemy, and restart the timer with the new `maxSpawnTime`. And *voila* we have random enemies floating through space with the sole purpose to destroy our player!
+
 <h4>Collision Detection</h4>
+
+
 
 <h4>Explosions!</h4>
 
