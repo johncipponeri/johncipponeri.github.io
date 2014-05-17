@@ -656,4 +656,197 @@ Looking back I should've replaced the timer's range with a variable but this gui
 
 ## The Glue
 
-*To be continued ...*
+{% highlight haxe %}
+package;
+
+import flixel.FlxG;
+import flixel.FlxSprite;
+import flixel.FlxState;
+import flixel.text.FlxText;
+import flixel.FlxObject;
+import flixel.ui.FlxBar;
+import flixel.group.FlxTypedGroup;
+import flixel.util.FlxTimer;
+import flixel.util.FlxRandom;
+import flixel.util.FlxColor;
+import flixel.effects.FlxFlicker;
+import flixel.addons.display.FlxBackdrop;
+import flixel.addons.weapon.FlxBullet;
+import flixel.effects.particles.FlxEmitterExt;
+import flixel.effects.particles.FlxParticle;
+
+class PlayState extends FlxState
+{
+	override public function create():Void
+	{
+		super.create();
+	}
+
+	override public function destroy():Void
+	{
+		super.destroy();
+	}
+
+	override public function update():Void
+	{
+		super.update();
+	}
+}
+{% endhighlight %}
+
+We can finally start putting our game together in the `PlayState`! The magical realm where everything comes to life. This is our bare bones version of the `PlayState` containing the default functions and specific imports we will be using. As per usual like we dd in our `MenuState` we will be using the `create` method to initialize our variables and get things going, our `destroy` function to nullify all of our variables, and our `update` function to poll input and update things once per frame, 60 times a second. But where do we start? Well instead of a blank screen let's make things a bit more lively.
+
+<h4>Background</h4>
+
+{% highlight haxe %}
+private var background:FlxBackdrop;
+
+override public function create():Void
+{
+	super.create();
+
+	background = new FlxBackdrop("assets/images/background.png");
+	background.velocity.set(100, 100);
+
+	add(background);
+}
+{% endhighlight %}
+
+Just like we had in our `MenuState` we'll be using a parallax starry sky for our background! This is the exact same code as before. Pretty boring if you ask me. So let's add something new!
+
+<h4>Score</h4>
+
+{% highlight haxe %}
+private var score:Int;
+private var scoreText:FlxText;
+
+private var background:FlxBackdrop;
+
+override public function create():Void
+{
+	super.create();
+
+	score = 0;
+	scoreText = new FlxText(10, 10, FlxG.width, "SCORE: 0", 12);
+	scoreText.setBorderStyle(FlxText.BORDER_SHADOW);
+
+	background = new FlxBackdrop("assets/images/background.png");
+	background.velocity.set(100, 100);
+
+	add(background);
+	add(scoreText);
+}
+{% endhighlight %}
+
+We've generated a few fonts by now in this lesson, and each time we've used the same style, white font, black outline, and now is no different. We position the score at (10, 10), nicely set up in the top left corner of the screen where I find a score should go. We also `add` the `scoreText` UI element *after* the `background` so our score is displayed on top of the starry sky. But what's more boring than a score that just sits there and changes numeric value when you score something? I think if everything else on the screen is moving, then the score should move too!
+
+{% highlight haxe %}
+override public function update():Void
+{
+	super.update();
+
+	score += 1;
+	scoreText.text = "SCORE: " + score;
+}
+{% endhighlight %}
+
+We can't exactly just make the score float all around the screen though can we? So incrementing your score by one each update will suffice, giving the score a nice active visual effect. But what is a game without a main character?
+
+<h4>Player</h4>
+
+{% highlight haxe %}
+private var score:Int;
+private var scoreText:FlxText;
+
+private var background:FlxBackdrop;
+
+private var player:Player;
+
+override public function create():Void
+{
+	super.create();
+
+	score = 0;
+	scoreText = new FlxText(10, 10, FlxG.width, "SCORE: 0", 12);
+	scoreText.setBorderStyle(FlxText.BORDER_SHADOW);
+
+	background = new FlxBackdrop("assets/images/background.png");
+	background.velocity.set(100, 100);
+
+	player = new Player();
+
+	add(background);
+	add(scoreText);
+	add(player);
+	add(player.gun.group);
+}
+{% endhighlight %}
+
+Since we hard-coded our player's starting location, initializing our player is dead simple. Throughout our code we will only be using the player object to reference it's `lives`, and `gun` variables as they are the only things that are affected by or affect other elements of the game.
+
+{% highlight haxe %}
+add(player.gun.group);
+{% endhighlight %}
+
+Not only are we adding our `player` to the state, but we're also adding `player.gun.group` which is the `group` of projectiles that are fired from the player's `gun`. So by adding this group when a projectile is fired it is added to the group which is already added to the state.
+
+<h4>Player Lives</h4>
+
+{% highlight haxe %}
+private var score:Int;
+private var scoreText:FlxText;
+
+private var background:FlxBackdrop;
+
+private var player:Player;
+
+override public function create():Void
+{
+	super.create();
+
+	score = 0;
+	scoreText = new FlxText(10, 10, FlxG.width, "SCORE: 0", 12);
+	scoreText.setBorderStyle(FlxText.BORDER_SHADOW);
+
+	background = new FlxBackdrop("assets/images/background.png");
+	background.velocity.set(100, 100);
+
+	player = new Player();
+
+	add(background);
+	add(scoreText);
+	add(player);
+	add(player.gun.group);
+
+	lives = new Array<FlxSprite>();
+	for (life in 0...player.lives)
+	{
+		lives[life] = new FlxSprite(40 * life + 10, FlxG.height - 40, "assets/images/life.png");
+		add(lives[life]);
+	}
+}
+{% endhighlight %}
+
+Adding the player lives in an efficient way is one of the more advanced and confusing topics of this article. The `player` has multiple lives (3 by default) that need to be evenly spaced and positioned in the bottom left corner of the screen. So instead of manually positioning these lives, we loop through however many the `player` has and space them out accordingly. Using this method the player may have more or less than the default amount of lives and they will still be displayed properly. The line `lives[life] = new FlxSprite(40 * life + 10, FlxG.height - 40, "assets/images/life.png");` is probably the most confusing. As you know the `FlxSprite` object's `create` method requests an (x, y) coordinate pair. In this case we calculate the coordinate of which to position each life. `40 * life + 10` is the equation we used to figure out our X coordinate. When looping through the `player`'s `lives` variable we start at `0` and end at one less than the number of lives the player has. So if the `player` object has 3 lives, the loop will count `0, 1, 2`, which in programming terms is 3 elements. We apply this knowledge to our equation.
+
+{% highlight haxe %}
+(40 * life + 10) = (40 * 0 + 10) = (0 + 10)  = 10;
+                 = (40 * 1 + 10) = (40 + 10) = 50;
+                 = (40 * 2 + 10) = (80 + 10) = 90;
+{% endhighlight %}
+
+As you can see the equation places each life sprite 40 pixels apart on the x-axis. It's rather elegant. We give each sprite the same Y coordinate though, to keep them all in a row. `FlxG.height - 40` places the sprites 40 pixels higher than the bottom of the game's container. After calculating the position of each life we `add` it to the state. We keep these sprites in an `array` so that we can hide them when the player loses one.
+
+<h4>Spawns</h4>
+
+<h4>Spawner</h4>
+
+<h4>Collision Detection</h4>
+
+<h4>Explosions!</h4>
+
+<h4>Game Over!</h4>
+
+<h4>Boss Battle</h4>
+
+<h4>Polish</h4>
