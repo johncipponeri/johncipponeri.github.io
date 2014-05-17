@@ -839,6 +839,130 @@ As you can see the equation places each life sprite 40 pixels apart on the x-axi
 
 <h4>Spawns</h4>
 
+{% highlight haxe %}
+private var score:Int;
+private var scoreText:FlxText;
+
+private var background:FlxBackdrop;
+
+private var player:Player;
+
+private var spawns:FlxTypedGroup<FlxSprite>;
+
+override public function create():Void
+{
+	super.create();
+
+	score = 0;
+	scoreText = new FlxText(10, 10, FlxG.width, "SCORE: 0", 12);
+	scoreText.setBorderStyle(FlxText.BORDER_SHADOW);
+
+	background = new FlxBackdrop("assets/images/background.png");
+	background.velocity.set(100, 100);
+
+	player = new Player();
+
+	spawns = new FlxTypedGroup<FlxSprite>();
+
+	add(background);
+	add(scoreText);
+	add(player);
+	add(player.gun.group);
+	add(spawns);
+
+	lives = new Array<FlxSprite>();
+	for (life in 0...player.lives)
+	{
+		lives[life] = new FlxSprite(40 * life + 10, FlxG.height - 40, "assets/images/life.png");
+		add(lives[life]);
+	}
+}
+{% endhighlight %}
+
+We will be utilizing a group of `FlxSprite` objects that represent random enemies whom of which spawn above the screen and fly downward in a vertical fashion. Let's go ahead and construct our `spawn` function.
+
+{% highlight haxe %}
+private function spawn():Void
+{
+	var spawn:FlxSprite = new FlxSprite(FlxRandom.intRanged(10, 500), -100, "assets/images/asteroid_small.png");
+	spawn.velocity.y = 100;
+
+	if (FlxRandom.chanceRoll(25))
+		if (!bossSpawned) spawn.loadGraphic("assets/images/enemy_ship.png");
+	else if (FlxRandom.chanceRoll(25))
+		spawn.loadGraphic("assets/images/asteroid.png");
+	else if (FlxRandom.chanceRoll(25))
+		if (!bossSpawned) spawn.loadGraphic("assets/images/enemy_ufo.png");
+
+	spawns.add(spawn);
+}
+{% endhighlight %}
+
+This is where things get mildly interesting. Let's break it down bit by bit.
+
+{% highlight haxe %}
+var spawn:FlxSprite = new FlxSprite(FlxRandom.intRanged(10, 500), -100, "assets/images/asteroid_small.png");
+{% endhighlight %}
+
+Each time we execute the `spawn` function we want to spawn a random enemy. The default enemy is a small asteroid. The only particularly interesting thing about this line is the position of which we assign the enemy. By using `FlxRandom` we are able to determine a range between 10, and 500 for the X coordinate. We then determine the Y coordinate to be -100, so the enemy can be spawned off screen for a more pleasing visual effect. The reason we created a default `spawn` is so that next we can use `FlxRandom` to determine whether or not we will change the spawn to be another type of enemy. In this case if we do change the type, all we have to do is assign a new sprite, and if we do not, then we have our default spawn ready to go.
+
+{% highlight haxe %}
+spawn.velocity.y = 100;
+{% endhighlight %}
+
+Here we give the spawn a constant downward velocity of 100 pixels per second, this ensures that the spawn will continually move downward once it's spawned until it is destroyed.
+
+{% highlight haxe %}
+if (FlxRandom.chanceRoll(25))
+	spawn.loadGraphic("assets/images/enemy_ship.png");
+else if (FlxRandom.chanceRoll(25))
+	spawn.loadGraphic("assets/images/asteroid.png");
+else if (FlxRandom.chanceRoll(25))
+	spawn.loadGraphic("assets/images/enemy_ufo.png");
+{% endhighlight %}
+
+Type by type we use `FlxRandom.chanceRoll` with a 25% chance of success to determine whether or not we will change types and if we do, assign the `spawn` a new graphic to represent the type of enemy.
+
+{% highlight haxe %}
+spawns.add(spawn);
+{% endhighlight %}
+
+Lastly we add the `spawn` to the group of `spawns` that is has already been added to the state. By doing so the game will handle drawing and updating every spawn in the `spawns` group for us, including any we add to it. But what happens to the spawns if the player doesn't destroy them and they fly beyond the bounds of the screen? Well instead of letting them collect and keep uselessly updating if they fly beyond the bounds of the screen we will penalize the player and destroy the spawn.
+
+{% highlight haxe %}
+private function checkSpawnBounds(spawn:FlxSprite):Void
+{
+	if (spawn.y > FlxG.height)
+	{
+		spawns.remove(spawn);
+		spawn.destroy();
+		if ((score -= 1000) < 0) score = 0;
+	}
+}
+{% endhighlight %}
+
+In the `update` function we will be executing this function for each spawn in the `spawns` group to check if they are out of bounds. Since `FlxSprite` use the top left pixel for position, we can use `spawn.y` to determine whether or not the spawn is completely off the screen. If the spawn is off the screen we remove it from the `spawns` group, then destroy the `spawn` object itself so it stops being drawn and updated. Lastly we penalize the player's score for letting an enemy get past!
+
+{% highlight haxe %}
+if ((score -= 1000) < 0) score = 0;
+{% endhighlight %}
+
+This line indicates that if the player's score is less than 0 after being penalized by 1000 points, then we will set it to 0. Nothing seems to be more demoralizing than a negative score. Now let's put these functions to use in the `update` function!
+
+{% highlight haxe %}
+override public function update():Void
+{
+	super.update();
+
+	spawns.forEach(checkSpawnBounds);
+
+	score += 1;
+	scoreText.text = "SCORE: " + score;
+}
+{% endhighlight %}
+
+By using the `forEach` method of the `spawns` group we can execute a function, in this case `checkSpawnBounds` on each `FlxSprite` object in the group. So each update of the game we destroy any spawns that are trying to escape. But what about the `spawn` function? We'll be covering that in the next section.
+
 <h4>Spawner</h4>
 
 <h4>Collision Detection</h4>
