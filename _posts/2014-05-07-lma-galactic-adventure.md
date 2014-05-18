@@ -799,6 +799,7 @@ private var scoreText:FlxText;
 private var background:FlxBackdrop;
 
 private var player:Player;
+private var lives:Array<FlxSprite>;
 
 override public function create():Void
 {
@@ -846,6 +847,7 @@ private var scoreText:FlxText;
 private var background:FlxBackdrop;
 
 private var player:Player;
+private var lives:Array<FlxSprite>;
 
 private var spawns:FlxTypedGroup<FlxSprite>;
 
@@ -972,6 +974,7 @@ private var scoreText:FlxText;
 private var background:FlxBackdrop;
 
 private var player:Player;
+private var lives:Array<FlxSprite>;
 
 private var spawns:FlxTypedGroup<FlxSprite>;
 private var maxSpawnTime:Float;
@@ -1034,14 +1037,348 @@ override public function update():Void
 
 Each update of the state we poll whether or not `spawnTimer.finished` is true, which would indicate that the timer has finished counting down. If this is the case we decrement our `maxSpawnTime`, `spawn()` a new enemy, and restart the timer with the new `maxSpawnTime`. And *voila* we have random enemies floating through space with the sole purpose to destroy our player!
 
-<h4>Collision Detection</h4>
+<h4>Collisions</h4>
 
+{% highlight haxe %}
+private function hurtSpawn(laser:FlxObject, spawn:FlxObject):Void
+{
+	spawn.destroy();
+	laser.kill();
+	score += 500;
+}
+{% endhighlight %}
 
+It's kind of rude to give someone a weapon, teach them how to use, but then place them in a world where that weapon cannot do what it was made to do, *kill*. That was kind of dark, but it's what we did and we need to fix it! We can use the `hurtSpawn` function to handle collision between the player's projectiles and any incoming enemy.
 
-<h4>Explosions!</h4>
+{% highlight haxe %}
+spawn.destroy();
+laser.kill();
+{% endhighlight %}
+
+These two lines are where the magic really happens. We have at our disposal the enemy and the projectile that are colliding, and we are simply going to remove them from the state, just like an enemy that goes out of bounds! But why do we `destroy` the enemy and only `kill` the laser? Well the `destroy` method gets rid of the object completely, while `kill` simply stops it from updating and rendering. We `kill` the projectile because it is a copy of the original projectile we specified in our `Player` class. When you use the `fire` function on the `player` object's weapon it adds a copy of the projectile to it's group, which we added to the state. If we `destroy` the projectile we destroying the actual projectile instead of the copy. If we were to do that there would be nothing to make copies of.
+
+{% highlight haxe %}
+score += 500;
+{% endhighlight %}
+
+When the player's projectile blows that sucker out of the sky we'll reward them with a whopping 500 points! But what about when an enemy successfully collides with the player? And when exactly do we execute the function we just made? All in due time.
+
+{% highlight haxe %}
+private function hurtPlayer(player:Player, enemy:FlxObject):Void
+{
+	lives[player.lives].kill();
+	player.lives--;
+	enemy.destroy();
+}
+{% endhighlight %}
+
+When an enemy successfully collides with our player we will do three things. First, we will kill one of the sprites representing one of the players lives. Second we will decrement the amount of lives the player has, and third we will destroy the enemy and wish it lifelong happiness because it did what it was designed to do. We have covered hurting the player, and shooting an enemy, but where do we implement this logic? Ah but the `update` function of course!
+
+{% highlight haxe %}
+override public function update():Void
+{
+	super.update();
+
+	if (spawnTimer.finished)
+	{
+		if (maxSpawnTime > 1) maxSpawnTime -= 0.1;			
+		spawn();
+		spawnTimer.reset(FlxRandom.floatRanged(1, maxSpawnTime));
+	}
+
+	spawns.forEach(checkSpawnBounds);
+
+	FlxG.overlap(player, spawns, hurtPlayer);
+	FlxG.overlap(player.gun.group, spawns, hurtSpawn);
+
+	score += 1;
+	scoreText.text = "SCORE: " + score;
+}
+{% endhighlight %}
+
+HaxeFlixel provides us with a very simple way of detecting collisions. By using the `FlxG.overlap` function we tell HaxeFlixel to check if any objects in Group A are colliding with any objects in Group B, and if so, execute the specified function. This is just another of the magical features of this framework.
 
 <h4>Game Over!</h4>
 
+{% highlight haxe %}
+private var score:Int;
+private var scoreText:FlxText;
+
+private var background:FlxBackdrop;
+
+private var player:Player;
+private var lives:Array<FlxSprite>;
+
+private var gameover:Bool;
+private var gameoverText:FlxText;
+
+private var spawns:FlxTypedGroup<FlxSprite>;
+private var maxSpawnTime:Float;
+private var spawnTimer:FlxTimer;
+
+override public function create():Void
+{
+	// omitted
+}
+{% endhighlight %}
+
+Well we have some admirable gameplay so far, but it never ends! A constant onslaught of enemies, even after the player loses all their lives. Well we can't have that. Here we declare our variables related to our game over overlay! But what use are variables until we use them?
+
+{% highlight haxe %}
+private function setGameover(text:String):Void
+{
+	gameover = true;
+	gameoverText = new FlxText(0, 0, 0, text + "\n(click to play again)");
+	gameoverText.setPosition(FlxG.width / 2 - gameoverText.fieldWidth * 1.25, FlxG.height / 3);
+	gameoverText.setFormat(null, 20, FlxColor.WHITE, "center", FlxText.BORDER_SHADOW, FlxColor.BLACK);
+	add(gameoverText);
+}
+{% endhighlight %}
+
+Our `setGameOver` function takes a single parameter, `text`. We're taking this parameter because in our game we will have 2 cases that initiate a game over, winning and losing, and we can't have a single message for both. We set our `gameover` variable to be true to communicate to other portions of the game that we are currently in a game over state. Then to actually display our game over state we put some big fancy text over everything! We use the same style we've used on every other piece of text in our game and position our `text` in the middle of the screen. We determine the content of the `gameoverText` before positioning it since the `gameoverText.fieldWidth` is calculated *after* we set the content. The `FlxG.width / 2 - gameoverText.fieldWidth * 1.25` simply tweaks the position by shifting left by 1.25 times the width of the text. This is just a tweak that I found made the text look more centered. We then, using the `setFormat` function give the font a size of 20, center all the content, and applt a black outline. Now to actually initiate the game over state, we move on to our `hurtPlayer` function!
+
+{% highlight haxe %}
+private function hurtPlayer(player:Player, enemy:FlxObject):Void
+{
+	if (--player.lives == 0)
+		setGameover("YOU LOST!");
+
+	lives[player.lives].kill();
+	enemy.destroy();
+}
+{% endhighlight %}
+
+Here we shift things around a bit. By decrementing the 'player' object's 'lives' *then* checking if it is equal to 0 we can determine whether or not it is time to initiate a game over. However if the `player` object's `'lives' does not equal 0, it is still decremented in response to the collision. This gives us sort of a kill two birds with one stone euphoria. But how do we restart the game for another attempt? Well as the `gameoverText`s content implies, we "click to play again!".
+
+{% highlight haxe %}
+override public function update():Void
+{
+	if (gameover)
+	{
+		if (FlxG.mouse.pressed)
+			FlxG.resetState();
+		
+		return;
+	}
+
+	super.update();
+
+	// omitted
+}
+{% endhighlight %}
+
+What's important about this implementation is that we exit the function before we execute `super.update()` if `gameover` is true. This essentially stops the game from updating any of the on-screen elements while we are in a game over state. We also poll whether or not the user clicks the screen while in the game over phase, and if they due, we reset the entire `PlayState` like nothing ever happened and start again! Now we've handled losing the game, but how do we win?
+
 <h4>Boss Battle</h4>
+
+{% highlight haxe %}
+private var score:Int;
+private var scoreText:FlxText;
+
+private var background:FlxBackdrop;
+
+private var player:Player;
+private var lives:Array<FlxSprite>;
+
+private var gameover:Bool;
+private var gameoverText:FlxText;
+
+private var spawns:FlxTypedGroup<FlxSprite>;
+private var maxSpawnTime:Float;
+private var spawnTimer:FlxTimer;
+
+private var bosses:FlxTypedGroup<Boss>;
+private var bossSpawned:Bool;
+private var killCounter:Int;
+
+private var bossHealthText:FlxText;
+private var bossHealth:FlxBar;
+
+override public function create():Void
+{
+	super.create();
+
+	score = 0;
+	scoreText = new FlxText(10, 10, FlxG.width, "SCORE: 0", 12);
+	scoreText.setBorderStyle(FlxText.BORDER_SHADOW);
+
+	background = new FlxBackdrop("assets/images/background.png");
+	background.velocity.set(100, 100);
+
+	player = new Player();
+
+	spawns = new FlxTypedGroup<FlxSprite>();
+	maxSpawnTime = 3;
+	spawnTimer = new FlxTimer();
+
+	bosses = new FlxTypedGroup<Boss>();
+	bossSpawned = false;
+	killCounter = 0;
+
+	bossHealthText = new FlxText(0, 0, 0, "BOSS FIGHT!");
+	bossHealthText.setPosition(FlxG.width / 2 - bossHealthText.fieldWidth * 1.25, 7);
+	bossHealthText.setFormat(null, 20, FlxColor.WHITE, "center", FlxText.BORDER_SHADOW, FlxColor.BLACK);
+
+	bossHealth = new FlxBar(FlxG.width * 0.125, 37, FlxBar.FILL_LEFT_TO_RIGHT, Std.int(FlxG.width * 0.75), 12, true);
+	bossHealth.health = 15;
+	bossHealth.setRange(0, 15);
+	bossHealth.setParent(bossHealth, "health");
+
+	add(background);
+	add(scoreText);
+	add(player);
+	add(player.gun.group);
+	add(spawns);
+
+	lives = new Array<FlxSprite>();
+	for (life in 0...player.lives)
+	{
+		lives[life] = new FlxSprite(40 * life + 10, FlxG.height - 40, "assets/images/life.png");
+		add(lives[life]);
+	}
+
+	spawnTimer.start(FlxRandom.floatRanged(1, maxSpawnTime));
+}
+{% endhighlight %}
+
+We're finally to our epic boss battle! There is a lot to this one so let's take it slow. Our boss system works like this. We have a `FlxTypedGroup`, which is a group of bosses represented by our `Boss` class. We also have a `boolean bossSpawned` which we will use to communicate to the rest of our code whether or not a boss battle is currently taking place. The `killCounter` variable is what we'll be using to determine whether or not it is time to initiate a boss battle. We also have a `bossHealth` and `bossHealthText` these are the UI elements linked to our bosses.
+
+{% highlight haxe %}
+bossHealthText = new FlxText(0, 0, 0, "BOSS FIGHT!");
+{% endhighlight %}
+
+Just as we did with our `gameoverText` we're setting our `bossHealthText` object's content before positioning it. And once again we are doing it for the same purpose, to calculate the `fieldWidth` for use in calculating the position.
+
+{% highlight haxe %}
+bossHealthText.setPosition(FlxG.width / 2 - bossHealthText.fieldWidth * 1.25, 7);
+{% endhighlight %}
+
+The positioning of the `bossHealthText` is identical to that of the `gameoverText`, we used the same tweak to center the text, however this text is only 7 pixels down from the top of the screen. We are positioning our text at the top, right above our boss' health bar.
+
+{% highlight haxe %}
+bossHealthText.setFormat(null, 20, FlxColor.WHITE, "center", FlxText.BORDER_SHADOW, FlxColor.BLACK);
+{% endhighlight %}
+
+And lastly we tack on the same style we add to all of our text elements, a white size 20 font with a nice black outline. Now that's it for the label, but what about the health bar?
+
+{% highlight haxe %}
+bossHealth = new FlxBar(FlxG.width * 0.125, 37, FlxBar.FILL_LEFT_TO_RIGHT, Std.int(FlxG.width * 0.75), 12, true);
+{% endhighlight %}
+
+While useful, this line of code might seem confusing to some, so lets break it down. For the X coordinate we use `FlxG.width * 0.125`. We are taking the width of the game's container and multiplying it by 1/8, this allows us to shift the health bar to the left by a dynamic amount. Since we are positioning a UI element it has to fit whatever proportion we give the screen, thus giving something horizontal like a health bar a constant width wouldn't be aesthetically pleasing in all resolutions, so instead we apply the same equation to whatever container width we're working with. We shift the health bar down 37 pixels from the top to place it underneath the `bossHealthText` and give it a fill style of `FlxBar.FILL_LEFT_TO_RIGHT` which is self explanatory. 
+
+`Std.int(FlxG.width * 75), 12`
+
+This bit goes hand in hand with the dynamic X coordinate. We tell the health bar to have a width that takes up 75% of the screen, and to center a bar that size we must split the remaining 25% of the screen on both sides of the bar, which leave 12.5% of the screen on both sides of the bar. By shifting the bar to the left by 1/8 or 12.5% of the screen, we are centering it given any width. But this is a health bar, so we still need to give it a maximum health to deplete.
+
+{% highlight haxe %}
+bossHealth.health = 15;
+bossHealth.setRange(0, 15);
+bossHealth.setParent(bossHealth, "health");
+{% endhighlight %}
+
+By setting the `bossHealth` health bar to 15, and the range from 0 to 15 the health bar knows how to appropriately display the amount of health based on the health of the `bossHealth` object's `health` variable. So when the `health` variable of the `bossHealth` changes, the health bar visually represents those changes. Now it's time to put that into action!
+
+{% highlight haxe %}
+private function hurtBoss(laser:FlxObject, boss:Boss):Void
+{
+	laser.kill();
+	bossHealth.hurt(1);
+
+	if (boss.health - 1 == 0)
+	{
+		bosses.remove(boss);
+		boss.destroy();
+
+		if (bosses.countLiving() > 0)
+		{
+			for(boss in bosses)
+				boss.multiplier += 1;
+		} else {
+			setGameover("YOU WON!");
+		}
+	} else {
+		boss.health -= 1;
+	}
+}
+{% endhighlight %}
+
+The `hurtBoss` function is what we will be using when collision happens between a player's projectile and a boss. In this function we perform a series of checks and tasks. First off we `destroy` the projectile that collide with the player and subtract 1 health from the boss' health bar. Second we check if this is the shot that kills the boss, and if so we remove it from the group of bosses and and destroy this boss to prevent it from drawing and updating any longer. Then we check how many bosses are left with a `health` greater than 0. If any bosses are still around, we increase their multiplier to make them shoot and move faster and at a higher rate, otherwise if no more bosses exist, the player has won! But if this is not the shot that kills the boss, we simply takea point of health away and hope for the best. Hurting the boss is all good and fun, but what about when it shoots back?
+
+{% highlight haxe %}
+private function bossShotPlayer(boss:Boss):Void
+{
+	FlxG.overlap(player, boss.gun.group, hurtPlayer);
+}
+{% endhighlight %}
+
+We have to use a different function that `hurtPlayer` when the boss' shoots the player it could be any number of bosses, and to use a `forEach` function on the group of bosses the function must use a `boss` object as a parameter, which the `hurtPlayer` function does not. So this is our solution! Now that we've handled what to do when the player and a boss violently interact, we need to add the bosses to the game!
+
+{% highlight haxe %}
+private function spawnBoss():Void
+{
+	bossSpawned = true;
+	maxSpawnTime = 3;
+
+	bosses.add(new Boss(0, -100, 50));
+	bosses.add(new Boss(FlxG.width - 100, -100, 125));
+	bosses.add(new Boss(0, -100, 200));
+
+	add(bosses);
+	bosses.forEach(addBossWeapon);
+
+	add(bossHealthText);
+	add(bossHealth);
+}
+
+private function addBossWeapon(boss:Boss):Void
+{
+	add(boss.gun.group);
+}
+{% endhighlight %}
+
+This is perhaps the only manual implementation in this entire game. We spawn and position three bosses with hard coded values, all vertically separated by 75 pixels. Two are positioned to the left of the screen, and one to the right. This is the function we use to initiate the boss the boss fight, by adding the bosses and their corresponding health bar to the game. But if we have 3 bosses, why do we only have one heatlh bar? The answer to that is, they share it. Each boss has 5 health as depicted by the `Boss` class and the health bar has 15 points of health, so each time a boss is hit, not only is the boss hurt but we also hurt the health bar, keeping everything in sync!
+
+{% highlight haxe %}
+override public function update():Void
+{
+	if (gameover)
+	{
+		if (FlxG.mouse.pressed)
+			FlxG.resetState();
+		
+		return;
+	}
+
+	super.update();
+
+	if (spawnTimer.finished)
+	{
+		if (maxSpawnTime > 1) maxSpawnTime -= 0.1;			
+		spawn();
+		spawnTimer.reset(FlxRandom.floatRanged(1, maxSpawnTime));
+	}
+
+	spawns.forEach(checkSpawnBounds);
+
+	if (!bossSpawned && killCounter > 30)
+		spawnBoss();
+
+	FlxG.overlap(player.gun.group, bosses, hurtBoss);
+	bosses.forEach(bossShotPlayer);
+
+	FlxG.overlap(player, spawns, hurtPlayer);
+	FlxG.overlap(player.gun.group, spawns, hurtSpawn);
+
+	score += 1;
+	scoreText.text = "SCORE: " + score;
+}
+{% endhighlight %}
+
+// ADD CODE FOR KILLCOUNTER
+
+In the `update` function we do a few more things. We check if the boss battle has yet begun, and if it hasn't, and our killCounter is greater than 30, initiate the boss battle! Besides this we perform more collision detection between our boss and player, just as we did between the player and the randomly spawned enemies. We now have a complete game, including randomly spawned enemies, a boss battle, game over overlay, and lasers! What else could we want? Well every game can use a few visual effects.
+
+<h4>Explosions!</h4>
 
 <h4>Polish</h4>
