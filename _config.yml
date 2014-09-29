@@ -1,72 +1,24 @@
-title:            Cracked Pixel
-description:      Describe your website.
-# Your site's domain goes here. Leave localhost server or blank when working locally.
-url:              http://johncipponeri.github.io
-disqus_shortname: 
+# Dependencies
+markdown:         redcarpet
+pygments:         true
 
-# Owner/author information
-owner:
-  name:           John Cipponeri
-  avatar:         bio-photo.jpg
-  bio:            "Describe your self."
-  email:          john.cipponeri@gmail.com
-  # Social networking links are used in author-bio sidebar. Update and remove as you like.
-  twitter:        
-  facebook:       
-  github:         johncipponeri 
-  stackoverflow: 
-  linkedin:       
-  instagram:      
-  lastfm:         
-  tumblr: 
-  pinterest: 
-  foursquare: 
-  steam: 
-  dribbble: 
-  # For Google Authorship https://plus.google.com/authorship
-  google_plus: john.cipponeri
+# Permalinks
+permalink:        pretty
 
-# Analytics and webmaster tools stuff goes here
-google_analytics:   
-google_verify:      
-# https://ssl.bing.com/webmaster/configure/verify/ownership Option 2 content= goes here
-bing_verify:        
+# Setup
+title:            Lanyon
+tagline:          'A Jekyll theme'
+description:      'A reserved <a href="http://jekyllrb.com" target="_blank">Jekyll</a> theme that places the utmost gravity on content with a hidden drawer. Made by <a href="https://twitter.com/mdo" target="_blank">@mdo</a>.'
+url:              http://lanyon.getpoole.com
 
-# Links to include in top navigation
-# For external links add external: true
-links:
-  - title: About
-    url: /about/
-  - title: Posts
-    url: /posts/
-  - title: Theme Setup
-    url: /theme-setup/
-  - title: Made Mistakes
-    url: http://mademistakes.com
-    external: true
+author:
+  name:           'Mark Otto'
+  url:            https://twitter.com/mdo
 
-# http://en.wikipedia.org/wiki/List_of_tz_database_time_zones
-timezone:    America/Chicago
-future:      true
-pygments:    true
-markdown:    kramdown
+paginate:         5
 
-# https://github.com/mojombo/jekyll/wiki/Permalinks
-permalink:   /:categories/:title/
+# Custom vars
+version:          2.0.0
 
-kramdown:
-  auto_ids: true
-  footnote_nr: 1
-  entity_output: as_char
-  toc_levels: 1..6
-  use_coderay: false
-
-  coderay:
-    coderay_line_numbers: 
-    coderay_line_numbers_start: 1
-    coderay_tab_width: 4
-    coderay_bold_every: 10
-    coderay_css: class
-
-include: [".htaccess"]
-exclude: ["lib", "config.rb", "Capfile", "config", "log", "Rakefile", "Rakefile.rb", "tmp", "less", "*.sublime-project", "*.sublime-workspace", "test", "spec", "Gruntfile.js", "package.json", "node_modules"]
+github:
+  repo:           https://github.com/poole/lanyon
