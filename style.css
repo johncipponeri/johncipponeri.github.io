@@ -30,7 +30,7 @@ body, html {
   height: 101vh;
   display: flex;
   background: var(--background);
-  background: linear-gradient( rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.75) ), url('../img/background.gif');
+  background: linear-gradient( rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.75) ), url('./img/background.gif');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
